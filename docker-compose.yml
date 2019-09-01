@@ -1,0 +1,64 @@
+version: "3.7"
+services:
+  postgres:
+    env_file: .env
+    image: postgres:latest
+    container_name: docker-postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    expose:
+    - 5432
+    ports:
+      - 5432:5432
+    environment:
+         - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+         - POSTGRES_USER=${DATABASE_USER}
+         - POSTGRES_DB=${DATABASE_NAME}
+    restart: unless-stopped
+    networks:
+      - postgres-network
+
+  pgadmin:
+    image:  dpage/pgadmin4
+    container_name: pgadmin4
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    ports:
+      - 5050:80
+    depends_on:
+      - postgres
+    environment: 
+      PGADMIN_DEFAULT_EMAIL: "michael.jo@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "docker"
+    networks:
+      - postgres-network
+
+  springbootapp:
+    env_file: .env
+    image: onesmallsteps:latest
+    container_name: springbootapp
+    expose:
+      - 8080
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://docker-postgres:5432/${DATABASE_NAME}
+      - SPRING_DATASOURCE_USERNAME=${DATABASE_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DATABASE_PASSWORD}
+    links:
+      - postgres
+    networks:
+      - postgres-network
+
+
+volumes:
+  postgres-data:
+    external: true
+
+networks:
+  postgres-network:
+    driver: bridge
